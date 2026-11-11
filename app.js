@@ -5,13 +5,15 @@ const { Engine, Bodies, Body, Composite, Query, Constraint, Sleeping } = Matter;
 
 // ---------------------------------------------------------------- constants
 const W = 560, H = 740;
+const VIEW_TOP = 110; // the strip above this is a drop zone that stays off-screen
 const JAR = { left: 100, right: 460, bottom: 700, rim: 178, r: 26 };
 const ORDER = ['rock', 'pebble', 'sand', 'beer'];
 const WRONG_ORDER = ['sand', 'pebble', 'rock', 'beer'];
 const STORE_KEY = 'jar-of-life.v1';
 
 const PRESETS = {
-  Natural:  { rock: '#7d8590', pebble: '#b08d6a', sand: '#e3c993', beer: '#e9a23b' },
+  Stone:    { rock: '#8e8b85', pebble: '#b89b7e', sand: '#e6d5ae', beer: '#e5a84b' },
+  Slate:    { rock: '#6b7785', pebble: '#a4aeb8', sand: '#dfe3e6', beer: '#7fb2d6' },
   Gemstone: { rock: '#4f63c9', pebble: '#2f9e78', sand: '#f0c4d9', beer: '#f2b134' },
   Pastel:   { rock: '#9aa8c4', pebble: '#e4a39c', sand: '#f2e2c0', beer: '#f4c26f' },
   Ocean:    { rock: '#35626a', pebble: '#7aa597', sand: '#e9dcc2', beer: '#5fb3c9' },
@@ -123,7 +125,7 @@ const newSeed = () => (Math.random() * 2 ** 31) >>> 0;
 function defaults() {
   return {
     items: [],
-    colors: { ...PRESETS.Natural },
+    colors: { ...PRESETS.Stone },
     drink: 'beer',
     wording: 'stanford',
     suggestions: JSON.parse(JSON.stringify(DEFAULT_SUGGESTIONS)),
@@ -173,7 +175,7 @@ function mix(hex, toward, amt) { const a = hexToRgb(hex), b = hexToRgb(toward); 
 const lighten = (h, a) => mix(h, '#ffffff', a);
 const darken = (h, a) => mix(h, '#1a1410', a);
 function luminance(h) { const [r, g, b] = hexToRgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; }
-const inkOn = h => luminance(h) > 0.32 ? '#2b2a27' : '#ffffff';
+const inkOn = h => luminance(h) > 0.32 ? '#37352f' : '#ffffff';
 function rgba(h, a) { const [r, g, b] = hexToRgb(h); return `rgba(${r},${g},${b},${a})`; }
 
 function applyCssColors() {
@@ -383,7 +385,7 @@ function drawBody(b) {
     return;
   }
 
-  ctx.shadowColor = 'rgba(40,30,10,0.28)';
+  ctx.shadowColor = 'rgba(15,15,15,0.18)';
   ctx.shadowBlur = item.type === 'rock' ? 8 : 4;
   ctx.shadowOffsetY = item.type === 'rock' ? 3 : 2;
   smoothShape(ctx, b.vertices);
@@ -422,12 +424,12 @@ function drawBody(b) {
   ctx.textBaseline = 'middle';
   if (ink === '#ffffff') { ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 3; }
   if (item.type === 'rock') {
-    ctx.font = '600 15px "DM Sans", system-ui, sans-serif';
+    ctx.font = '600 15px "Geist", system-ui, sans-serif';
     const lines = wrapLines(item.name, r * 1.45, 2);
     const lh = 17;
     lines.forEach((l, i) => ctx.fillText(l, x, y + (i - (lines.length - 1) / 2) * lh));
   } else {
-    ctx.font = '600 11px "DM Sans", system-ui, sans-serif';
+    ctx.font = '600 11px "Geist", system-ui, sans-serif';
     ctx.fillText(fitText(item.name, r * 1.75), x, y + 0.5);
   }
   ctx.restore();
@@ -484,7 +486,7 @@ function drawBeerLabels(t) {
   const color = state.colors.beer;
   if (!poured.size) { beerPills = []; return; }
   ctx.save();
-  ctx.font = '600 11px "DM Sans", system-ui, sans-serif';
+  ctx.font = '500 11.5px "Geist", system-ui, sans-serif';
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
   const items = state.items.filter(i => poured.has(i.id));
@@ -505,15 +507,15 @@ function drawBeerLabels(t) {
       const py = Math.min(liquidLevel - 15 + ri * 26 + bob, JAR.bottom - 18);
       const px = x;
       const hovered = hoverId === p.item.id;
-      ctx.shadowColor = 'rgba(40,30,10,0.2)'; ctx.shadowBlur = 4; ctx.shadowOffsetY = 1;
-      ctx.beginPath(); ctx.roundRect(px, py - p.h / 2, p.w, p.h, 11);
+      ctx.shadowColor = 'rgba(15,15,15,0.12)'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 1;
+      ctx.beginPath(); ctx.roundRect(px, py - p.h / 2, p.w, p.h, 4);
       ctx.fillStyle = lighten(color, 0.55); ctx.fill();
       ctx.shadowColor = 'transparent';
       ctx.lineWidth = hovered ? 2 : 1; ctx.strokeStyle = darken(color, hovered ? 0.45 : 0.2); ctx.stroke();
       // tiny bubble icon
       ctx.fillStyle = rgba(color, 0.9);
       ctx.beginPath(); ctx.arc(px + 9, py, 3.2, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#2b2a27';
+      ctx.fillStyle = '#37352f';
       ctx.fillText(p.txt, px + p.w / 2 + 3, py + 0.5);
       beerPills.push({ item: p.item, x: px, y: py - p.h / 2, w: p.w, h: p.h });
       x += p.w + 6;
@@ -539,9 +541,9 @@ function drawJarBack() {
   jarPath(ctx);
   ctx.closePath();
   const g = ctx.createLinearGradient(JAR.left, 0, JAR.right, 0);
-  g.addColorStop(0, 'rgba(220,232,236,0.55)');
-  g.addColorStop(0.5, 'rgba(240,246,247,0.35)');
-  g.addColorStop(1, 'rgba(210,224,228,0.6)');
+  g.addColorStop(0, 'rgba(236,240,241,0.9)');
+  g.addColorStop(0.5, 'rgba(247,249,249,0.6)');
+  g.addColorStop(1, 'rgba(232,237,238,0.9)');
   ctx.fillStyle = g;
   ctx.fill();
   ctx.restore();
@@ -551,8 +553,8 @@ function drawJarFront() {
   ctx.save();
   // glass outline
   jarPath(ctx);
-  ctx.strokeStyle = 'rgba(120,145,152,0.75)';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(140,152,155,0.8)';
+  ctx.lineWidth = 2;
   ctx.stroke();
   jarPath(ctx, -5);
   ctx.strokeStyle = 'rgba(255,255,255,0.7)';
@@ -574,24 +576,21 @@ function drawJarFront() {
     const yy = mt + 6 + i * 8;
     ctx.beginPath();
     ctx.moveTo(JAR.left - 4, yy); ctx.quadraticCurveTo((JAR.left + JAR.right) / 2, yy + 5, JAR.right + 4, yy);
-    ctx.strokeStyle = 'rgba(130,155,162,0.55)'; ctx.lineWidth = 2.2; ctx.stroke();
+    ctx.strokeStyle = 'rgba(140,152,155,0.45)'; ctx.lineWidth = 1.5; ctx.stroke();
   }
   ctx.beginPath();
   ctx.ellipse((JAR.left + JAR.right) / 2, mt, (JAR.right - JAR.left) / 2 + 4, 7, 0, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(120,145,152,0.8)'; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.strokeStyle = 'rgba(140,152,155,0.8)'; ctx.lineWidth = 2; ctx.stroke();
   ctx.restore();
 }
 
 function drawBackground() {
-  ctx.fillStyle = '#efe7d8';
-  ctx.fillRect(0, 0, W, H);
-  // table
-  const tg = ctx.createLinearGradient(0, JAR.bottom - 6, 0, H);
-  tg.addColorStop(0, '#d9c7a8'); tg.addColorStop(1, '#cdb894');
-  ctx.fillStyle = tg;
-  ctx.fillRect(0, JAR.bottom + 6, W, H - JAR.bottom);
-  // shadow under jar
-  ctx.fillStyle = 'rgba(80,60,30,0.18)';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, VIEW_TOP, W, H - VIEW_TOP);
+  ctx.fillStyle = '#e9e9e7';
+  ctx.fillRect(20, JAR.bottom + 8, W - 40, 1);
+  // soft contact shadow under the jar
+  ctx.fillStyle = 'rgba(15,15,15,0.07)';
   ctx.beginPath(); ctx.ellipse((JAR.left + JAR.right) / 2, JAR.bottom + 10, (JAR.right - JAR.left) / 2 + 20, 9, 0, 0, Math.PI * 2); ctx.fill();
 }
 
@@ -608,26 +607,27 @@ function drawOverlayText() {
   ctx.save();
   ctx.textAlign = 'center';
   if (!state.items.length) {
-    ctx.fillStyle = 'rgba(93,90,83,0.8)';
-    ctx.font = '500 22px "Fraunces", Georgia, serif';
+    ctx.fillStyle = '#9b9a97';
+    ctx.font = '600 20px "Geist", system-ui, sans-serif';
     ctx.fillText('Your jar is empty.', (JAR.left + JAR.right) / 2, 380);
-    ctx.font = '400 14px "DM Sans", system-ui, sans-serif';
+    ctx.font = '400 14px "Geist", system-ui, sans-serif';
     ctx.fillText('Start with a big rock.', (JAR.left + JAR.right) / 2, 408);
   }
   if (overflow) {
     const msg = 'Your jar is overflowing. Something has to give.';
-    ctx.font = '600 14px "DM Sans", system-ui, sans-serif';
-    const w = ctx.measureText(msg).width + 32;
-    ctx.fillStyle = 'rgba(180,72,60,0.92)';
-    ctx.beginPath(); ctx.roundRect(W / 2 - w / 2, 14, w, 34, 17); ctx.fill();
-    ctx.fillStyle = '#fff';
+    ctx.font = '500 14px "Geist", system-ui, sans-serif';
+    const w = ctx.measureText(msg).width + 28;
+    ctx.fillStyle = '#fdebec';
+    ctx.beginPath(); ctx.roundRect(W / 2 - w / 2, VIEW_TOP + 10, w, 34, 6); ctx.fill();
+    ctx.fillStyle = '#9f2f2d';
     ctx.textBaseline = 'middle';
-    ctx.fillText(msg, W / 2, 31);
+    ctx.fillText(msg, W / 2, VIEW_TOP + 27);
   }
   ctx.restore();
 }
 
 let last = performance.now();
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function frame(now) {
   const dt = Math.min(now - last, 32);
   last = now;
@@ -637,10 +637,10 @@ function frame(now) {
   for (const [id, b] of bodies) if (b.position.y > H + 200) despawn(id);
   checkOverflow(now);
 
-  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, -VIEW_TOP * dpr * scale);
   drawBackground();
   drawJarBack();
-  const t = now / 1000;
+  const t = reduceMotion ? 0 : now / 1000;
   const ordered = [...bodies.values()].sort((a, b) => ORDER.indexOf(b.plugin.jar.item.type) - ORDER.indexOf(a.plugin.jar.item.type));
   drawLiquid(t);
   for (const b of ordered) drawBody(b);
@@ -655,7 +655,7 @@ function frame(now) {
 const tooltip = $('#tooltip');
 function toWorld(e) {
   const r = canvas.getBoundingClientRect();
-  return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale };
+  return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale + VIEW_TOP };
 }
 function hitTest(p) {
   for (let i = beerPills.length - 1; i >= 0; i--) {
@@ -699,7 +699,7 @@ canvas.addEventListener('pointermove', e => {
   canvas.style.cursor = hit ? 'pointer' : 'default';
   if (hit) {
     const r = canvas.getBoundingClientRect();
-    tooltip.textContent = `${hit.item.name} · ${typeLabel(hit.item.type)}`;
+    tooltip.replaceChildren(document.createTextNode(hit.item.name), el('span', null, typeLabel(hit.item.type)));
     tooltip.style.left = (e.clientX - r.left) + 'px';
     tooltip.style.top = (e.clientY - r.top) + 'px';
     tooltip.hidden = false;
@@ -780,6 +780,11 @@ function swatch(type) {
   if (type === 'sand') { s.style.backgroundColor = state.colors.sand; return s; }
   s.style.background = `radial-gradient(circle at 35% 30%, ${lighten(state.colors[type], .3)}, ${state.colors[type]} 55%, ${darken(state.colors[type], .25)})`;
   return s;
+}
+function tagColors(node, type) {
+  const c = state.colors[type];
+  node.style.setProperty('--tag-bg', mix(c, '#ffffff', type === 'sand' ? 0.5 : 0.78));
+  node.style.setProperty('--tag-ink', mix(c, '#2a2722', 0.62));
 }
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
@@ -879,11 +884,12 @@ function renderJarList() {
     if (!items.length) continue;
     const g = el('div', 'group');
     const title = el('div', 'group-title');
-    title.append(swatch(t), document.createTextNode(`${typeLabel(t, true)} · ${items.length}`));
+    title.append(swatch(t), document.createTextNode(typeLabel(t, true)), el('span', 'count', String(items.length)));
     const chips = el('div', 'chips');
     for (const it of items) {
-      const c = el('button', 'chip');
+      const c = el('button', 'chip tag');
       c.type = 'button';
+      tagColors(c, t);
       c.append(el('span', 'txt', it.name));
       c.addEventListener('click', e => { e.stopPropagation(); const r = c.getBoundingClientRect(); openEditor(it, r.left, r.bottom + 4, true); });
       chips.append(c);
@@ -898,9 +904,7 @@ function renderLegend() {
   ul.replaceChildren(...ORDER.map(t => {
     const li = el('li');
     const n = state.items.filter(i => i.type === t).length;
-    const b = el('b', null, typeLabel(t, true) + ' ');
-    b.append(el('span', null, n ? `· ${n}` : ''));
-    li.append(swatch(t), b, el('p', null, BLURBS[t]));
+    li.append(swatch(t), el('b', null, typeLabel(t, true)), el('span', 'count', String(n)), el('p', null, BLURBS[t]));
     return li;
   }));
 }
@@ -965,7 +969,6 @@ function renderWizard() {
     res.append(el('h3', null, `“${name}” sounds like ${type === 'sand' ? 'Sand' : (type === 'beer' ? drinkName() : 'a ' + typeLabel(type))}.`));
     res.append(el('p', null, BLURBS[type]));
     const actions = el('div', 'row-btns');
-    actions.style.justifyContent = 'center';
     const existing = wizState.id && state.items.find(i => i.id === wizState.id);
     const primary = el('button', 'btn btn-primary', existing ? (existing.type === type ? 'Keep it there' : `Move it to ${typeLabel(type, true)}`) : 'Drop it in the jar');
     primary.addEventListener('click', () => {
@@ -992,10 +995,10 @@ function renderWizard() {
     body.append(ans);
   }
   const foot = el('div', 'wiz-foot');
-  const back = el('button', 'link', '← Back');
+  const back = el('button', 'link', 'Back');
   back.hidden = !wizState.history.length;
   back.addEventListener('click', () => { wizState.step = wizState.history.pop(); renderWizard(); });
-  const words = el('span', 'muted small', `${T.label} wording`);
+  const words = el('span', 'muted small', T.label === 'General' ? 'General wording' : 'College wording');
   foot.append(back, words);
   body.append(foot);
 }
@@ -1030,7 +1033,7 @@ function previewCanvas(type) {
   for (let i = 0; i < n; i++) { const nx = mid(pts[i], pts[(i + 1) % n]); g.quadraticCurveTo(pts[i].x, pts[i].y, nx.x, nx.y); }
   const gr = g.createRadialGradient(48 - r * .35, 50 - r * .45, 2, 48, 50, r * 1.25);
   gr.addColorStop(0, lighten(color, .32)); gr.addColorStop(.55, color); gr.addColorStop(1, darken(color, .32));
-  g.shadowColor = 'rgba(40,30,10,.25)'; g.shadowBlur = 8; g.shadowOffsetY = 3;
+  g.shadowColor = 'rgba(15,15,15,.16)'; g.shadowBlur = 8; g.shadowOffsetY = 3;
   g.fillStyle = gr; g.fill();
   return c;
 }
