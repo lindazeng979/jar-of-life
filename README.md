@@ -1,14 +1,17 @@
 # Jar of Life 🫙
 
+
+
 Your life is a jar. Put the big rocks in first, let the pebbles fill the gaps, let the sand settle, and leave room for a beer (or coffee, or boba) with a friend. 
 
 Jar of Life is a little interactive reminder to prioritize what matters most. It turns your daily to-do list into a jar you can fill with the things that make up your life.
 
 **Build your own daily priority jar:** [lindazeng979.github.io/jar-of-life/](https://lindazeng979.github.io/jar-of-life/).
 
+<img width="1186" height="668" alt="jar-of-life-preview" src="https://github.com/user-attachments/assets/4b6e01ce-470c-48b4-9eee-802baa971c2a" />
+
 > Inspired by this [video](https://www.youtube.com/watch?v=n5rr6sHOtUE) by Stephen R. Covey's big rocks analogy.
 
-![Jar of Life Preview](assets/jar-preview.png)
 
 ## Features
 - Type an activity (e.g. "dance") and drop it into the jar as a Big Rock, Pebble, Sand or Beer. The pieces fall with real physics.
