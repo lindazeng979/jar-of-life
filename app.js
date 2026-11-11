@@ -29,11 +29,12 @@ const DEFAULT_SUGGESTIONS = {
 };
 
 const BLURBS = {
-  rock: 'Your highest priorities: health, family, close relationships, the 1–2 commitments that anchor you.',
-  pebble: 'Important but secondary: work, classes, bills, projects.',
-  sand: 'The small stuff: busywork, distractions, minor chores.',
-  beer: 'The room left for joy: leisure, fun, time with friends.',
+  rock: 'Your highest priorities: health, family, close relationships, and the 1–2 commitments that anchor who you are. Skipping them leads to lasting regret.',
+  pebble: 'Important but secondary: classes, work, bills, projects. Skipping them is stressful, but your core life stays intact.',
+  sand: 'The small stuff: busywork, distractions, chores done out of habit. If you could drop it without anyone noticing, it’s sand.',
+  beer: 'Leisure, fun and real connection, whatever leaves you refreshed. Proof that a full life still has room for joy.',
 };
+const JAR_BLURB = 'Your finite time, energy and capacity. It doesn’t get any bigger.';
 
 // Sorting tests, in two wordings. Answer 'yes' leads to the step's own type.
 const TESTS = {
@@ -107,7 +108,6 @@ const DUMP_TEXT = {
 };
 
 const QUOTES = [
-  ['拔苗助长: don’t pull up the seedlings to help them grow.', 'Rushing a natural process destroys it. Tend the roots.'],
   ['Put the big rocks in first, or they will never fit.', 'The Jar of Life'],
   ['The key is not to prioritize what’s on your schedule, but to schedule your priorities.', 'Stephen R. Covey'],
   ['A full life still has room for a {drink} with a friend.', 'The Jar of Life'],
@@ -901,7 +901,9 @@ function renderJarList() {
 
 function renderLegend() {
   const ul = $('#legend');
-  ul.replaceChildren(...ORDER.map(t => {
+  const jarRow = el('li');
+  jarRow.append(el('span', 'sw jar'), el('b', null, 'The jar'), el('span', 'count'), el('p', null, JAR_BLURB));
+  ul.replaceChildren(jarRow, ...ORDER.map(t => {
     const li = el('li');
     const n = state.items.filter(i => i.type === t).length;
     li.append(swatch(t), el('b', null, typeLabel(t, true)), el('span', 'count', String(n)), el('p', null, BLURBS[t]));
@@ -1218,6 +1220,38 @@ $('#btn-export').addEventListener('click', () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
+// A jar can travel inside a link. It lives after the '#', which browsers never send to the server.
+function encodeJar() {
+  const compact = { v: 1, i: state.items.map(i => [i.name, ORDER.indexOf(i.type)]), c: state.colors, d: state.drink, w: state.wording, s: state.suggestions };
+  const bytes = new TextEncoder().encode(JSON.stringify(compact));
+  let bin = '';
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function decodeJar(str) {
+  const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+  const c = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))));
+  return sanitize({
+    items: (c.i || []).map(([name, t]) => ({ name, type: ORDER[t], id: uid(), seed: newSeed() })),
+    colors: c.c, drink: c.d, wording: c.w, suggestions: c.s,
+  });
+}
+$('#btn-link').addEventListener('click', async () => {
+  const url = location.origin + location.pathname + '#jar=' + encodeJar();
+  try { await navigator.clipboard.writeText(url); toast('Link copied. Bookmark it or open it on another device.'); }
+  catch { prompt('Copy this link:', url); }
+});
+function loadFromHash() {
+  const m = location.hash.match(/^#jar=([A-Za-z0-9_-]+)$/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  let incoming;
+  try { incoming = decodeJar(m[1]); } catch { toast('That jar link is broken or incomplete'); return; }
+  if (state.items.length && !confirm(`Open the jar from this link (${incoming.items.length} things)? It replaces the jar saved in this browser.`)) return;
+  state = incoming;
+  save();
+  toast('Jar loaded from link');
+}
 $('#btn-import').addEventListener('click', () => $('#import-file').click());
 $('#import-file').addEventListener('change', async e => {
   const f = e.target.files[0];
@@ -1241,6 +1275,12 @@ $('#btn-wrong').addEventListener('click', () => {
   pour(WRONG_ORDER);
   toast('Sand and pebbles first. Watch where the big rocks end up.');
 });
+$('#btn-demo').addEventListener('click', () => {
+  if (!state.items.length) { toast('Add a few things to your jar first'); return; }
+  $('#stage').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+  pour(WRONG_ORDER);
+  toast('Sand and pebbles first. Watch where the big rocks end up.');
+});
 $('#btn-shake').addEventListener('click', () => {
   for (const b of bodies.values()) {
     Sleeping.set(b, false);
@@ -1259,17 +1299,23 @@ $('#btn-empty').addEventListener('click', () => {
 
 // ---------------------------------------------------------------- quotes
 let qi = Math.floor(Math.random() * QUOTES.length);
-function showQuote() {
+let quoteTimer = 0;
+function showQuote(step = 0) {
+  qi = (qi + step + QUOTES.length) % QUOTES.length;
   const q = $('#quote');
   q.style.opacity = 0;
   setTimeout(() => {
-    const [text, by] = QUOTES[qi % QUOTES.length];
+    const [text, by] = QUOTES[qi];
     q.replaceChildren(document.createTextNode(text.replace('{drink}', drinkName().toLowerCase())));
     if (by) q.append(el('small', null, by));
     q.style.opacity = 1;
-    qi++;
-  }, 600);
+  }, reduceMotion ? 0 : 350);
+  // restart the countdown so a quote you went back to doesn't vanish right away
+  clearInterval(quoteTimer);
+  quoteTimer = setInterval(() => showQuote(1), 14000);
 }
+$('#q-prev').addEventListener('click', () => showQuote(-1));
+$('#q-next').addEventListener('click', () => showQuote(1));
 
 // ---------------------------------------------------------------- render all
 function renderLists() { renderJarList(); renderLegend(); renderSortList(); }
@@ -1281,10 +1327,10 @@ function renderAll() {
   renderAddTypes(); renderSuggestions(); renderLists(); renderWordingToggles(); renderDump(); renderCustomize();
 }
 
+loadFromHash();
 renderAll();
 resize();
 pour();
 showQuote();
-setInterval(showQuote, 14000);
 requestAnimationFrame(frame);
 })();
