@@ -5,8 +5,21 @@ const { Engine, Bodies, Body, Composite, Query, Constraint, Sleeping } = Matter;
 
 // ---------------------------------------------------------------- constants
 const W = 560, H = 740;
-const VIEW_TOP = 260; // the strip above this is a drop zone that stays off-screen
+const VIEW_H = 480; // visible world height at jar size 1 (the area above is an off-screen drop zone)
+const JAR_BASE = { halfW: 165, height: 382 };
+const JAR_SIZE = { min: 0.75, max: 1.5 };
 const JAR = { left: 115, right: 445, bottom: 700, rim: 318, r: 24 };
+function setJarGeometry(size) {
+  JAR.left = W / 2 - JAR_BASE.halfW * size;
+  JAR.right = W / 2 + JAR_BASE.halfW * size;
+  JAR.rim = JAR.bottom - JAR_BASE.height * size;
+}
+// The camera zooms with the jar so it always fills the frame; the pieces keep their size.
+function view() {
+  const z = state.jarSize;
+  const bottom = JAR.bottom + 40 * z;
+  return { z, x0: W / 2 - (W / 2) * z, y0: bottom - VIEW_H * z };
+}
 const ORDER = ['rock', 'pebble', 'sand', 'beer'];
 const WRONG_ORDER = ['sand', 'pebble', 'rock', 'beer'];
 const STORE_KEY = 'jar-of-life.v1';
@@ -128,6 +141,7 @@ function defaults() {
     colors: { ...PRESETS.Stone },
     drink: 'beer',
     wording: 'stanford',
+    jarSize: 1,
     suggestions: JSON.parse(JSON.stringify(DEFAULT_SUGGESTIONS)),
   };
 }
@@ -150,6 +164,7 @@ function sanitize(s) {
   if (s.colors) for (const t of ORDER) if (/^#[0-9a-f]{6}$/i.test(s.colors[t] || '')) out.colors[t] = s.colors[t];
   if (DRINKS[s.drink]) out.drink = s.drink;
   if (TESTS[s.wording]) out.wording = s.wording;
+  if (Number.isFinite(s.jarSize)) out.jarSize = Math.min(JAR_SIZE.max, Math.max(JAR_SIZE.min, s.jarSize));
   if (s.suggestions) for (const t of ORDER) if (Array.isArray(s.suggestions[t])) out.suggestions[t] = s.suggestions[t].filter(x => typeof x === 'string').map(x => x.slice(0, 40));
   return out;
 }
@@ -199,17 +214,25 @@ function convexHull(pts) {
 // ---------------------------------------------------------------- physics
 const engine = Engine.create({ enableSleeping: true, positionIterations: 10, velocityIterations: 8 });
 const world = engine.world;
-{
+let walls = [];
+function buildWalls() {
+  if (walls.length) Composite.remove(world, walls);
   const o = { isStatic: true, friction: 0.6, label: 'wall' };
   const midX = (JAR.left + JAR.right) / 2, top = -2000;
-  Composite.add(world, [
+  walls = [
     Bodies.rectangle(midX, JAR.bottom + 40, JAR.right - JAR.left + 200, 80, o),
     Bodies.rectangle(JAR.left - 40, (top + JAR.bottom + 80) / 2, 80, JAR.bottom + 80 - top, o),
     Bodies.rectangle(JAR.right + 40, (top + JAR.bottom + 80) / 2, 80, JAR.bottom + 80 - top, o),
     // soften the bottom corners to match the drawn jar
     Bodies.polygon(JAR.left, JAR.bottom, 3, 18, { ...o, angle: Math.PI / 4 }),
     Bodies.polygon(JAR.right, JAR.bottom, 3, 18, { ...o, angle: Math.PI / 4 }),
-  ]);
+  ];
+  Composite.add(world, walls);
+}
+function applyJarSize() {
+  setJarGeometry(state.jarSize);
+  buildWalls();
+  liquidLevel = JAR.bottom;
 }
 
 const bodies = new Map();   // item id -> body
@@ -261,7 +284,7 @@ function spawn(item) {
   const r = SIZES[item.type][1];
   const half = (JAR.right - JAR.left) / 2 - r - 6;
   const x = (JAR.left + JAR.right) / 2 + (Math.random() * 2 - 1) * half;
-  let y = 30;
+  let y = JAR.rim - 260;
   // if the pile is already high, drop above it so it doesn't spawn inside something
   const others = Composite.allBodies(world).filter(b => !b.isStatic);
   for (let tries = 0; tries < 40; tries++) {
@@ -532,7 +555,7 @@ function drawPourStream(now) {
   ctx.strokeStyle = rgba(state.colors.beer, 0.6 * k + 0.1);
   ctx.lineWidth = 7 * k + 1;
   ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, liquidLevel); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, view().y0); ctx.lineTo(x, liquidLevel); ctx.stroke();
   ctx.restore();
 }
 
@@ -585,10 +608,11 @@ function drawJarFront() {
 }
 
 function drawBackground() {
+  const v = view();
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, VIEW_TOP, W, H - VIEW_TOP);
+  ctx.fillRect(v.x0, v.y0, W * v.z, VIEW_H * v.z);
   ctx.fillStyle = '#e9e9e7';
-  ctx.fillRect(20, JAR.bottom + 8, W - 40, 1);
+  ctx.fillRect(v.x0 + 20 * v.z, JAR.bottom + 8, (W - 40) * v.z, v.z);
   // soft contact shadow under the jar
   ctx.fillStyle = 'rgba(15,15,15,0.07)';
   ctx.beginPath(); ctx.ellipse((JAR.left + JAR.right) / 2, JAR.bottom + 10, (JAR.right - JAR.left) / 2 + 20, 9, 0, 0, Math.PI * 2); ctx.fill();
@@ -605,23 +629,26 @@ function checkOverflow(now) {
 
 function drawOverlayText() {
   ctx.save();
+  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
   ctx.textAlign = 'center';
   if (!state.items.length) {
+    const v = view();
+    const cy = ((JAR.rim + JAR.bottom) / 2 - v.y0) / v.z;
     ctx.fillStyle = '#9b9a97';
     ctx.font = '600 20px "Geist", system-ui, sans-serif';
-    ctx.fillText('Your jar is empty.', (JAR.left + JAR.right) / 2, (JAR.rim + JAR.bottom) / 2 - 12);
+    ctx.fillText('Your jar is empty.', W / 2, cy - 12);
     ctx.font = '400 14px "Geist", system-ui, sans-serif';
-    ctx.fillText('Start with a big rock.', (JAR.left + JAR.right) / 2, (JAR.rim + JAR.bottom) / 2 + 16);
+    ctx.fillText('Start with a big rock.', W / 2, cy + 16);
   }
   if (overflow) {
     const msg = 'Your jar is overflowing. Something has to give.';
     ctx.font = '500 14px "Geist", system-ui, sans-serif';
     const w = ctx.measureText(msg).width + 28;
     ctx.fillStyle = '#fdebec';
-    ctx.beginPath(); ctx.roundRect(W / 2 - w / 2, VIEW_TOP + 10, w, 34, 6); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(W / 2 - w / 2, 10, w, 34, 6); ctx.fill();
     ctx.fillStyle = '#9f2f2d';
     ctx.textBaseline = 'middle';
-    ctx.fillText(msg, W / 2, VIEW_TOP + 27);
+    ctx.fillText(msg, W / 2, 27);
   }
   ctx.restore();
 }
@@ -637,7 +664,10 @@ function frame(now) {
   for (const [id, b] of bodies) if (b.position.y > H + 200) despawn(id);
   checkOverflow(now);
 
-  ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, -VIEW_TOP * dpr * scale);
+  {
+    const v = view(), k = dpr * scale / v.z;
+    ctx.setTransform(k, 0, 0, k, -v.x0 * k, -v.y0 * k);
+  }
   drawBackground();
   drawJarBack();
   const t = reduceMotion ? 0 : now / 1000;
@@ -654,8 +684,8 @@ function frame(now) {
 // ---------------------------------------------------------------- pointer
 const tooltip = $('#tooltip');
 function toWorld(e) {
-  const r = canvas.getBoundingClientRect();
-  return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale + VIEW_TOP };
+  const r = canvas.getBoundingClientRect(), v = view();
+  return { x: v.x0 + (e.clientX - r.left) / scale * v.z, y: v.y0 + (e.clientY - r.top) / scale * v.z };
 }
 function hitTest(p) {
   for (let i = beerPills.length - 1; i >= 0; i--) {
@@ -1222,7 +1252,7 @@ $('#btn-export').addEventListener('click', () => {
 });
 // A jar can travel inside a link. It lives after the '#', which browsers never send to the server.
 function encodeJar() {
-  const compact = { v: 1, i: state.items.map(i => [i.name, ORDER.indexOf(i.type)]), c: state.colors, d: state.drink, w: state.wording, s: state.suggestions };
+  const compact = { v: 1, i: state.items.map(i => [i.name, ORDER.indexOf(i.type)]), c: state.colors, d: state.drink, w: state.wording, s: state.suggestions, j: state.jarSize };
   const bytes = new TextEncoder().encode(JSON.stringify(compact));
   let bin = '';
   bytes.forEach(b => { bin += String.fromCharCode(b); });
@@ -1233,7 +1263,7 @@ function decodeJar(str) {
   const c = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))));
   return sanitize({
     items: (c.i || []).map(([name, t]) => ({ name, type: ORDER[t], id: uid(), seed: newSeed() })),
-    colors: c.c, drink: c.d, wording: c.w, suggestions: c.s,
+    colors: c.c, drink: c.d, wording: c.w, suggestions: c.s, jarSize: c.j,
   });
 }
 $('#btn-link').addEventListener('click', async () => {
@@ -1259,14 +1289,14 @@ $('#import-file').addEventListener('change', async e => {
   if (!f) return;
   try {
     state = sanitize(JSON.parse(await f.text()));
-    save(); renderAll(); pour();
+    save(); applyJarSize(); renderAll(); renderJarSize(); pour();
     toast('Jar imported');
   } catch { toast('That file could not be read'); }
 });
 $('#btn-reset').addEventListener('click', () => {
   if (!confirm('Reset everything? This clears your jar, colors and suggestions.')) return;
   state = defaults();
-  save(); clearJar(); renderAll();
+  save(); clearJar(); applyJarSize(); renderAll(); renderJarSize();
 });
 
 // ---------------------------------------------------------------- jar buttons
@@ -1280,6 +1310,21 @@ $('#btn-demo').addEventListener('click', () => {
   $('#stage').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
   pour(WRONG_ORDER);
   toast('Sand and pebbles first. Watch where the big rocks end up.');
+});
+const sizeInput = $('#jar-size');
+let sizeTimer = 0;
+function renderJarSize() {
+  sizeInput.value = state.jarSize;
+  $('#jar-size-val').textContent = Math.round(state.jarSize * 100) + '%';
+}
+sizeInput.addEventListener('input', () => {
+  state.jarSize = Number(sizeInput.value);
+  renderJarSize();
+  applyJarSize();
+  // refill once the slider settles, so everything lands inside the new jar
+  clearJar();
+  clearTimeout(sizeTimer);
+  sizeTimer = setTimeout(() => { pour(); save(); }, 220);
 });
 $('#btn-shake').addEventListener('click', () => {
   for (const b of bodies.values()) {
@@ -1328,7 +1373,9 @@ function renderAll() {
 }
 
 loadFromHash();
+applyJarSize();
 renderAll();
+renderJarSize();
 resize();
 pour();
 showQuote();
