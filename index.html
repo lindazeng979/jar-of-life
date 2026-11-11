@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jar of Life</title>
+  <meta name="description" content="Fill your jar with big rocks first. A daily priority jar.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='14' y='8' width='36' height='8' rx='3' fill='%23a98b63'/%3E%3Crect x='12' y='16' width='40' height='42' rx='9' fill='%23e8eef0' stroke='%237d8590' stroke-width='3'/%3E%3Ccircle cx='26' cy='45' r='8' fill='%237d8590'/%3E%3Ccircle cx='40' cy='47' r='6' fill='%23b08d6a'/%3E%3Ccircle cx='38' cy='36' r='4' fill='%23e3c993'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&text=%E6%8B%94%E8%8B%97%E5%8A%A9%E9%95%BF&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Jar of Life</h1>
+      <p class="tagline">Put the big rocks in first. The rest will settle around them.</p>
+    </div>
+    <figure class="idiom">
+      <div class="idiom-hanzi" lang="zh">拔苗助长</div>
+      <figcaption>
+        <span class="pinyin">bá miáo zhù zhǎng</span>
+        <span>"Pulling up seedlings to help them grow." Rushing growth kills it. Tend your roots and let things grow at their own pace.</span>
+      </figcaption>
+    </figure>
+  </header>
+
+  <main class="layout">
+    <!-- Jar column -->
+    <section class="jar-col" aria-label="Your jar">
+      <div class="jar-stage" id="stage">
+        <canvas id="jar" aria-label="An animated jar holding your priorities"></canvas>
+        <div class="tooltip" id="tooltip" hidden></div>
+      </div>
+      <div class="jar-actions">
+        <button class="btn" id="btn-order" title="Empty the jar and pour everything back in: rocks, pebbles, sand, then drinks">Pour in order</button>
+        <button class="btn" id="btn-wrong" title="Pour sand and pebbles first and see what happens to the rocks">Try the wrong order</button>
+        <button class="btn" id="btn-shake">Shake</button>
+        <button class="btn btn-quiet" id="btn-empty">Empty jar</button>
+      </div>
+      <ul class="legend" id="legend"></ul>
+    </section>
+
+    <!-- Control column -->
+    <section class="panel" aria-label="Controls">
+      <nav class="tabs" role="tablist">
+        <button role="tab" class="tab" data-tab="add" aria-selected="true">Add</button>
+        <button role="tab" class="tab" data-tab="sort" aria-selected="false">Sort it out</button>
+        <button role="tab" class="tab" data-tab="dump" aria-selected="false">Brain dump</button>
+        <button role="tab" class="tab" data-tab="custom" aria-selected="false">Customize</button>
+      </nav>
+
+      <!-- ADD -->
+      <div class="tabpanel" id="tab-add">
+        <form id="add-form" class="add-form" autocomplete="off">
+          <label class="sr" for="add-name">Activity</label>
+          <input id="add-name" class="text-in" placeholder='Type something, like "dance"' maxlength="40">
+          <div class="type-picker" id="add-types" role="radiogroup" aria-label="Type"></div>
+          <button class="btn btn-primary" type="submit">Drop it in</button>
+        </form>
+
+        <div class="section-head">
+          <h2>Suggestions</h2>
+          <button class="link" id="btn-edit-sugg">Edit</button>
+        </div>
+        <p class="muted small" id="sugg-help">Tap one to drop it in the jar.</p>
+        <div id="suggestions"></div>
+
+        <div class="section-head">
+          <h2>In your jar</h2>
+          <span class="muted small">Tap one to rename, move or delete it</span>
+        </div>
+        <div id="jar-list"></div>
+      </div>
+
+      <!-- SORT -->
+      <div class="tabpanel" id="tab-sort" hidden>
+        <p class="lead">Not sure if something is a rock, a pebble, sand or a <span data-drink>beer</span>? Answer a few questions about what happens if you skip it, why you do it, and how you feel afterwards.</p>
+        <div class="wording-toggle" data-wording-toggle></div>
+        <form id="sort-form" class="add-form" autocomplete="off">
+          <input id="sort-name" class="text-in" placeholder="Something new to test" maxlength="40">
+          <button class="btn btn-primary" type="submit">Test it</button>
+        </form>
+        <div class="section-head"><h2>Or re-test something in your jar</h2></div>
+        <div id="sort-list"></div>
+      </div>
+
+      <!-- BRAIN DUMP -->
+      <div class="tabpanel" id="tab-dump" hidden>
+        <div id="dump"></div>
+      </div>
+
+      <!-- CUSTOMIZE -->
+      <div class="tabpanel" id="tab-custom" hidden>
+        <div class="section-head"><h2>Colors</h2></div>
+        <div class="presets" id="presets"></div>
+        <div class="color-grid" id="colors"></div>
+
+        <div class="section-head"><h2>The leftover room is…</h2></div>
+        <div class="seg" id="drink-seg"></div>
+
+        <div class="section-head"><h2>Sorting test wording</h2></div>
+        <div class="wording-toggle" data-wording-toggle></div>
+
+        <div class="section-head"><h2>Your data</h2></div>
+        <p class="muted small">Your jar is saved in this browser only. Export it to move it to another device or keep a backup.</p>
+        <div class="row-btns">
+          <button class="btn" id="btn-export">Export</button>
+          <button class="btn" id="btn-import">Import</button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden>
+          <button class="btn btn-danger" id="btn-reset">Reset everything</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p id="quote" class="quote" aria-live="polite"></p>
+  </footer>
+
+  <!-- Item editor -->
+  <div class="popover" id="editor" hidden role="dialog" aria-label="Edit item">
+    <input id="ed-name" class="text-in" maxlength="40" aria-label="Name">
+    <div class="type-picker small" id="ed-types"></div>
+    <div class="ed-actions">
+      <button class="btn" id="ed-sort">Help me sort</button>
+      <button class="btn btn-danger" id="ed-delete">Delete</button>
+    </div>
+  </div>
+
+  <!-- Sorting wizard -->
+  <dialog id="wizard" class="wizard">
+    <div id="wiz-body"></div>
+  </dialog>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
