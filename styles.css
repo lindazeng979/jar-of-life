@@ -45,13 +45,13 @@ button { font: inherit; color: inherit; }
 /* callout (Notion-style) */
 .callout {
   display: flex; gap: 14px; align-items: center; background: var(--callout);
-  border-radius: 6px; padding: 14px 16px; max-width: 720px;
+  border-radius: 6px; padding: 14px 16px; max-width: 800px;
 }
 .callout-hanzi {
   font-family: "Ma Shan Zheng", "Kaiti SC", "STKaiti", serif; font-size: 28px; line-height: 1.1;
   color: var(--ink); white-space: nowrap;
 }
-.callout p { margin: 0; font-size: 14.5px; }
+.callout p { margin: 0; font-size: 14.5px; text-wrap: pretty; }
 .callout em { font-style: normal; color: var(--ink-2); font-size: 13.5px; }
 
 /* ---------- layout ---------- */
