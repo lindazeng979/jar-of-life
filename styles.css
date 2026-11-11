@@ -73,7 +73,7 @@ button { font: inherit; color: inherit; }
 .jar-actions { display: flex; flex-wrap: wrap; gap: 2px; margin: 8px 0 0 -8px; }
 
 /* legend: a simple table, not cards */
-.legend { list-style: none; padding: 0; margin: 40px 0 0; border-top: 1px solid var(--line); }
+.legend { list-style: none; padding: 0; margin: 88px 0 0; /* about one row of space */ border-top: 1px solid var(--line); }
 .legend li {
   display: grid; grid-template-columns: 26px 92px 28px 1fr; align-items: start; gap: 10px;
   padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 14px;
