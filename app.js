@@ -163,6 +163,8 @@ function sanitize(s) {
   }
   if (s.colors) for (const t of ORDER) if (/^#[0-9a-f]{6}$/i.test(s.colors[t] || '')) out.colors[t] = s.colors[t];
   if (DRINKS[s.drink]) out.drink = s.drink;
+  const own = typeof s.drinkCustom === 'string' ? s.drinkCustom.trim().slice(0, 20) : '';
+  if (s.drink === 'custom' && own) { out.drink = 'custom'; out.drinkCustom = own; }
   if (TESTS[s.wording]) out.wording = s.wording;
   if (Number.isFinite(s.jarSize)) out.jarSize = Math.min(JAR_SIZE.max, Math.max(JAR_SIZE.min, s.jarSize));
   if (s.suggestions) for (const t of ORDER) if (Array.isArray(s.suggestions[t])) out.suggestions[t] = s.suggestions[t].filter(x => typeof x === 'string').map(x => x.slice(0, 40));
@@ -175,7 +177,9 @@ function save() {
   saveTimer = setTimeout(() => { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch {} }, 150);
 }
 
-const drinkName = () => DRINKS[state.drink];
+const drinkName = () => state.drink === 'custom' && state.drinkCustom
+  ? state.drinkCustom.charAt(0).toUpperCase() + state.drinkCustom.slice(1)
+  : DRINKS[state.drink] || DRINKS.beer;
 const typeLabel = (t, plural) => ({
   rock: plural ? 'Big Rocks' : 'Big Rock',
   pebble: plural ? 'Pebbles' : 'Pebble',
@@ -1232,10 +1236,17 @@ function renderCustomize() {
     const b = el('button', null, v);
     b.type = 'button';
     b.setAttribute('aria-pressed', state.drink === k ? 'true' : 'false');
-    b.addEventListener('click', () => { state.drink = k; save(); renderAll(); });
+    b.addEventListener('click', () => { state.drink = k; $('#drink-own').value = ''; save(); renderAll(); });
     return b;
   }));
 }
+$('#drink-own').addEventListener('input', e => {
+  const v = e.target.value.trim().slice(0, 20);
+  if (v) { state.drink = 'custom'; state.drinkCustom = v; }
+  else if (state.drink === 'custom') state.drink = 'beer';
+  save();
+  renderAll();
+});
 function colorsChanged(rerenderInputs = true) {
   save();
   applyCssColors();
@@ -1252,7 +1263,7 @@ $('#btn-export').addEventListener('click', () => {
 });
 // A jar can travel inside a link. It lives after the '#', which browsers never send to the server.
 function encodeJar() {
-  const compact = { v: 1, i: state.items.map(i => [i.name, ORDER.indexOf(i.type)]), c: state.colors, d: state.drink, w: state.wording, s: state.suggestions, j: state.jarSize };
+  const compact = { v: 1, i: state.items.map(i => [i.name, ORDER.indexOf(i.type)]), c: state.colors, d: state.drink, dc: state.drinkCustom, w: state.wording, s: state.suggestions, j: state.jarSize };
   const bytes = new TextEncoder().encode(JSON.stringify(compact));
   let bin = '';
   bytes.forEach(b => { bin += String.fromCharCode(b); });
@@ -1263,7 +1274,7 @@ function decodeJar(str) {
   const c = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))));
   return sanitize({
     items: (c.i || []).map(([name, t]) => ({ name, type: ORDER[t], id: uid(), seed: newSeed() })),
-    colors: c.c, drink: c.d, wording: c.w, suggestions: c.s, jarSize: c.j,
+    colors: c.c, drink: c.d, drinkCustom: c.dc, wording: c.w, suggestions: c.s, jarSize: c.j,
   });
 }
 $('#btn-link').addEventListener('click', async () => {
@@ -1326,6 +1337,11 @@ sizeInput.addEventListener('input', () => {
   clearTimeout(sizeTimer);
   sizeTimer = setTimeout(() => { pour(); save(); }, 220);
 });
+// On narrow screens the jar is above the panel, so bring it back into view to show the result.
+sizeInput.addEventListener('change', () => {
+  const r = $('#stage').getBoundingClientRect();
+  if (r.bottom < 0 || r.top > innerHeight) $('#stage').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+});
 $('#btn-shake').addEventListener('click', () => {
   for (const b of bodies.values()) {
     Sleeping.set(b, false);
@@ -1368,6 +1384,8 @@ let listTimer = 0;
 function renderListsSoon() { clearTimeout(listTimer); listTimer = setTimeout(renderLists, 250); }
 function renderAll() {
   applyCssColors();
+  const own = $('#drink-own');
+  if (document.activeElement !== own) own.value = state.drink === 'custom' ? state.drinkCustom : '';
   for (const s of $$('[data-drink]')) s.textContent = drinkName().toLowerCase();
   renderAddTypes(); renderSuggestions(); renderLists(); renderWordingToggles(); renderDump(); renderCustomize();
 }
