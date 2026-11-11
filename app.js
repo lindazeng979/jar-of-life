@@ -1359,15 +1359,23 @@ $('#btn-empty').addEventListener('click', () => {
 });
 
 // ---------------------------------------------------------------- quotes
-let qi = Math.floor(Math.random() * QUOTES.length);
+// Preview: ?quote=bottom moves the idiom from the top callout into the rotating quotes.
+const QUOTE_AT_BOTTOM = new URLSearchParams(location.search).get('quote') === 'bottom';
+if (QUOTE_AT_BOTTOM) {
+  $('.callout')?.remove();
+  QUOTES.unshift(['There is plenty of time ahead. There is no need to “pull up the seeds to help them grow.”', 'bá miáo zhù zhǎng', '拔苗助长']);
+}
+let qi = QUOTE_AT_BOTTOM ? 0 : Math.floor(Math.random() * QUOTES.length);
 let quoteTimer = 0;
 function showQuote(step = 0) {
   qi = (qi + step + QUOTES.length) % QUOTES.length;
   const q = $('#quote');
   q.style.opacity = 0;
   setTimeout(() => {
-    const [text, by] = QUOTES[qi];
-    q.replaceChildren(document.createTextNode(text.replace('{drink}', drinkName().toLowerCase())));
+    const [text, by, zh] = QUOTES[qi];
+    q.replaceChildren();
+    if (zh) q.append(Object.assign(el('span', 'quote-zh', zh), { lang: 'zh' }));
+    q.append(document.createTextNode(text.replace('{drink}', drinkName().toLowerCase())));
     if (by) q.append(el('small', null, by));
     q.style.opacity = 1;
   }, reduceMotion ? 0 : 350);
