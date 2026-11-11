@@ -121,6 +121,7 @@ const DUMP_TEXT = {
 };
 
 const QUOTES = [
+  ['There is plenty of time ahead. There is no need to “pull up the seeds to help them grow.”', 'bá miáo zhù zhǎng', '拔苗助长'],
   ['Put the big rocks in first, or they will never fit.', 'The Jar of Life'],
   ['The key is not to prioritize what’s on your schedule, but to schedule your priorities.', 'Stephen R. Covey'],
   ['A full life still has room for a {drink} with a friend.', 'The Jar of Life'],
@@ -1359,13 +1360,7 @@ $('#btn-empty').addEventListener('click', () => {
 });
 
 // ---------------------------------------------------------------- quotes
-// Preview: ?quote=bottom moves the idiom from the top callout into the rotating quotes.
-const QUOTE_AT_BOTTOM = new URLSearchParams(location.search).get('quote') === 'bottom';
-if (QUOTE_AT_BOTTOM) {
-  $('.callout')?.remove();
-  QUOTES.unshift(['There is plenty of time ahead. There is no need to “pull up the seeds to help them grow.”', 'bá miáo zhù zhǎng', '拔苗助长']);
-}
-let qi = QUOTE_AT_BOTTOM ? 0 : Math.floor(Math.random() * QUOTES.length);
+let qi = 0; // always open on the idiom
 let quoteTimer = 0;
 function showQuote(step = 0) {
   qi = (qi + step + QUOTES.length) % QUOTES.length;
