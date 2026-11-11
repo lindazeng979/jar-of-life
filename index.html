@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&text=%E6%8B%94%E8%8B%97%E5%8A%A9%E9%95%BF&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -24,6 +25,10 @@
     </svg>
     <h1>Jar of Life</h1>
     <p class="page-sub">Put the big rocks in first. Everything else settles around them. Inspired by <a href="https://www.youtube.com/watch?v=n5rr6sHOtUE" target="_blank" rel="noopener">this video</a>.</p>
+    <aside class="callout">
+      <span class="callout-hanzi" lang="zh">拔苗助长</span>
+      <p><em>bá miáo zhù zhǎng</em><br>There is plenty of time ahead. There is no need to “pull up the seeds to help them grow.”</p>
+    </aside>
   </header>
 
   <main class="layout">
@@ -39,6 +44,8 @@
         <button class="btn" id="btn-shake">Shake</button>
         <button class="btn btn-quiet" id="btn-empty">Empty jar</button>
       </div>
+      <h2 class="legend-h">What each piece means</h2>
+      <ul class="legend" id="legend"></ul>
     </section>
 
     <!-- Control column -->
@@ -151,8 +158,6 @@
     </div>
     <button class="btn btn-outline" id="btn-demo">Try the wrong order in your jar</button>
 
-    <h3>What each piece means</h3>
-    <ul class="legend" id="legend"></ul>
 
     <h3>What it teaches</h3>
     <dl class="rules">
@@ -161,11 +166,6 @@
       <div><dt>Leave room for fun</dt><dd>Once the important things are in, there's still room for a <span data-drink>beer</span> or a slow evening with friends. A full life has space for joy too.</dd></div>
     </dl>
 
-    <a class="bookmark" href="https://www.youtube.com/watch?v=n5rr6sHOtUE" target="_blank" rel="noopener">
-      <span class="bm-title">The Jar of Life</span>
-      <span class="bm-desc">The video that inspired this page. Watch it on YouTube.</span>
-      <span class="bm-url">youtube.com/watch?v=n5rr6sHOtUE</span>
-    </a>
   </section>
 
   <footer class="foot">
@@ -176,12 +176,6 @@
         <button class="icon-btn" id="q-next" aria-label="Next quote" title="Next quote"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
       </div>
     </div>
-    <section class="idiom" aria-label="A closing thought">
-      <p class="idiom-zh" lang="zh">来日方长 🏞️😊。无需“拔苗助长”🌾🤓。</p>
-      <p class="idiom-py">lái rì fāng cháng. wú xū bá miáo zhù zhǎng.</p>
-      <p class="idiom-en">There is plenty of time ahead 🏞️😊. There is no need to “pull up the seedlings to help them grow” 🌾🤓.</p>
-      <p class="idiom-note"><b lang="zh">拔苗助长</b> comes from an old story by Mencius. An impatient farmer thought his rice was growing too slowly, so he pulled every seedling up a little to help it along. By the next morning they had all withered. Some things grow at their own pace, and rushing them ruins them.</p>
-    </section>
   </footer>
 
   <!-- Item editor -->

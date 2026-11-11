@@ -5,8 +5,8 @@ const { Engine, Bodies, Body, Composite, Query, Constraint, Sleeping } = Matter;
 
 // ---------------------------------------------------------------- constants
 const W = 560, H = 740;
-const VIEW_TOP = 110; // the strip above this is a drop zone that stays off-screen
-const JAR = { left: 100, right: 460, bottom: 700, rim: 178, r: 26 };
+const VIEW_TOP = 260; // the strip above this is a drop zone that stays off-screen
+const JAR = { left: 115, right: 445, bottom: 700, rim: 318, r: 24 };
 const ORDER = ['rock', 'pebble', 'sand', 'beer'];
 const WRONG_ORDER = ['sand', 'pebble', 'rock', 'beer'];
 const STORE_KEY = 'jar-of-life.v1';
@@ -219,7 +219,7 @@ let nextDropAt = 0;
 let pourUntil = 0;
 let liquidLevel = JAR.bottom;
 
-const SIZES = { rock: [58, 68], pebble: [25, 31], sand: [11, 13] };
+const SIZES = { rock: [60, 70], pebble: [26, 32], sand: [12, 14] };
 
 function makeBody(item, x, y) {
   const rand = mulberry32(item.seed);
@@ -566,10 +566,10 @@ function drawJarFront() {
   ctx.lineWidth = 8;
   ctx.beginPath(); ctx.moveTo(JAR.left + 18, JAR.rim + 30); ctx.lineTo(JAR.left + 18, JAR.bottom - 90); ctx.stroke();
   ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.moveTo(JAR.left + 32, JAR.rim + 40); ctx.lineTo(JAR.left + 32, JAR.rim + 120); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(JAR.left + 32, JAR.rim + 40); ctx.lineTo(JAR.left + 32, JAR.rim + 100); ctx.stroke();
   ctx.strokeStyle = 'rgba(255,255,255,0.3)';
   ctx.lineWidth = 6;
-  ctx.beginPath(); ctx.moveTo(JAR.right - 16, JAR.rim + 60); ctx.lineTo(JAR.right - 16, JAR.bottom - 140); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(JAR.right - 16, JAR.rim + 50); ctx.lineTo(JAR.right - 16, JAR.bottom - 90); ctx.stroke();
   // mason jar thread rings at the mouth
   const mt = JAR.rim - 26;
   for (let i = 0; i < 3; i++) {
@@ -609,9 +609,9 @@ function drawOverlayText() {
   if (!state.items.length) {
     ctx.fillStyle = '#9b9a97';
     ctx.font = '600 20px "Geist", system-ui, sans-serif';
-    ctx.fillText('Your jar is empty.', (JAR.left + JAR.right) / 2, 380);
+    ctx.fillText('Your jar is empty.', (JAR.left + JAR.right) / 2, (JAR.rim + JAR.bottom) / 2 - 12);
     ctx.font = '400 14px "Geist", system-ui, sans-serif';
-    ctx.fillText('Start with a big rock.', (JAR.left + JAR.right) / 2, 408);
+    ctx.fillText('Start with a big rock.', (JAR.left + JAR.right) / 2, (JAR.rim + JAR.bottom) / 2 + 16);
   }
   if (overflow) {
     const msg = 'Your jar is overflowing. Something has to give.';
